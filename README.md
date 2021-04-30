@@ -1,10 +1,10 @@
-# Ruby Advanced Class Methods
+# Advanced Class Methods
 
-## Objectives
+## Learning Goals
 
-1. Build class finders
-2. Build class constructors
-3. Build class operators
+- Build class finders
+- Build class constructors
+- Build class operators
 
 ## Advanced Class Methods
 
