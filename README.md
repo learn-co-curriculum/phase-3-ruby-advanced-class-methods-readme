@@ -2,11 +2,9 @@
 
 ## Learning Goals
 
-- Build class finders
-- Build class constructors
-- Build class operators
+- Build advanced class methods to work with the `@@all` class variable
 
-## Advanced Class Methods
+## Introduction
 
 Consider the method `.all` on the `Song` class, `Song.all`. This method acts as
 a reader for the `@@all` class variable. This method _exposes_ this piece of
@@ -91,13 +89,13 @@ end
 Person.new("Grace Hopper")
 Person.new("Sandi Metz")
 
-sandi_metz = Person.all.find{|person| person.name == "Sandi Metz"}
+sandi_metz = Person.all.find { |person| person.name == "Sandi Metz" }
 sandi_metz #=> #<Person @name="Sandi Metz">
 
-grace_hopper = Person.all.find{|person| person.name == "Grace Hopper"}
+grace_hopper = Person.all.find { |person| person.name == "Grace Hopper" }
 grace_hopper #=> #<Person @name="Grace Hopper">
 
-avi_flombaum = Person.all.find{|person| person.name == "Avi Flombaum"}
+avi_flombaum = Person.all.find { |person| person.name == "Avi Flombaum" }
 avi_flombaum #=> nil
 ```
 
@@ -106,22 +104,18 @@ you will have to use `#find`, passing in the appropriate block. This stinks!
 Imagine how unsustainable it will get to write out `Person.all.find` over and
 over as your application grows.
 
-## There's Gotta Be a Better Way!
-
-![Home Video Infomercial GIF](https://media.giphy.com/media/xsATxBQfeKHCg/giphy.gif)
-
-___
+## There's Gotta Be a Better Way
 
 Instead of writing `#find` every time we want to _search_ for an object, we can
 **encapsulate** this logic into a class method, like `Person.find_by_name`.
-Instead of writing:
+Instead of writing something like this every single time we need to search:
 
 ```ruby
-Person.find{|p| p.name == "Grace Hopper"}
+Person.find { |p| p.name == "Grace Hopper" }
 ```
 
-every single time we need to search, we can simply teach our `Person` class
-_how_ to search by defining a class method:
+We can simply teach our `Person` class _how_ to search by defining a class
+method:
 
 ```ruby
 class Person
@@ -138,7 +132,7 @@ class Person
   end
 
   def self.find_by_name(name)
-    @@all.find{|person| person.name == name}
+    @@all.find { |person| person.name == name }
   end
 
 end
@@ -159,7 +153,7 @@ avi_flombaum #=> nil
 We call class methods like `Person.find_by_name` 'finders'. Finder class methods
 are responsible for finding instances based on some property or condition.
 
-#### Slight Digression on Abstraction:
+### Slight Digression on Abstraction
 
 But we can improve the code above slightly. Code that relies on abstraction is
 more maintainable and extendable over time. In general, we advance as a species
@@ -207,7 +201,7 @@ than using the variable.
 
 We already have a method to read `@@people`, `Person.all`, so why not use that
 method in `Person.find_by_name`? Within a class method, how do we call another
-class method? What is the scope of the class method? What is self? **The class
+class method? What is the scope of the class method? What is `self`? **The class
 itself**. Consider:
 
 ```ruby
@@ -228,7 +222,7 @@ class Person
   end
 
   def self.find_by_name(name)
-    self.all.find{|person| person.name == name}
+    self.all.find { |person| person.name == name }
   end
 
 end
@@ -251,7 +245,7 @@ more time the difference in seeing the following two lines littered throughout
 your code:
 
 ```ruby
-Person.all.find{|p| p.name == "Ada Lovelace"}
+Person.all.find { |p| p.name == "Ada Lovelace" }
 # literal implementation, no abstraction or encapsulation
 # our program would be littered with this
 
@@ -281,12 +275,18 @@ Mark Zuckerberg, 32, Facebook
 Martha Stewart, 74, MSL
 ```
 
-They tell us that they will often need to upload CSVs of people data.  Let's
+They tell us that they will often need to upload CSVs of people data. Let's
 look at how we'd create a person instance from a CSV:
 
 ```ruby
 class Person
   attr_accessor :name, :age, :company
+
+  def initialize(name, age, company)
+    @name = name
+    @age = age
+    @company = company
+  end
 end
 
 csv_data = "Elon Musk, 45, Tesla
@@ -294,16 +294,12 @@ Mark Zuckerberg, 32, Facebook
 Martha Stewart, 74, MSL"
 
 rows = csv_data.split("\n")
-people = rows.collect do |row|
+people = rows.map do |row|
   data = row.split(", ")
   name = data[0]
   age = data[1]
   company = data[2]
-  person = Person.new
-  person.name = name
-  person.age = age
-  person.company = company
-  person
+  Person.new(name, age, company)
 end
 people
 #=> [
@@ -322,19 +318,21 @@ Of course! Let's look at how we might implement a custom constructor.
 class Person
   attr_accessor :name, :age, :company
 
+  def initialize(name, age, company)
+    @name = name
+    @age = age
+    @company = company
+  end
+
   def self.new_from_csv(csv_data)
     rows = csv_data.split("\n")
-    people = rows.collect do |row|
+    people = rows.map do |row|
       data = row.split(", ")
       name = data[0]
       age = data[1]
       company = data[2]
 
-      person = self.new # This is an important line.
-      person.name = name
-      person.age = age
-      person.company = company
-      person
+      self.new(name, age, company)  # This is an important line.
     end
     people
   end
@@ -376,8 +374,8 @@ class Person
   def self.new_from_csv(csv_data)
     # Split the CSV data into an array of individual rows.
     rows = csv_data.split("\n")
-    # For each row, let's collect a Person instance based on the data
-    people = rows.collect do |row|
+    # For each row, let's map a Person instance based on the data
+    people = rows.map do |row|
       # Split the row into 3 parts, name, age, company, at the ", "
       data = row.split(", ")
       name = data[0]
@@ -385,13 +383,9 @@ class Person
       company = data[2]
 
       # Make a new instance
-      person = self.new # self refers to the Person class. This is Person.new
-      # Set the properties on the person.
-      person.name = name
-      person.age = age
-      person.company = company
-      # Return the person to collect
-      person
+      # self refers to the Person class. This is Person.new(name, age, company)
+      # return the new person to .map
+      self.new(name, age, company)
     end
     # Return the array of newly created people.
     people
@@ -482,7 +476,7 @@ Person.all.each do |person|
 end
 ```
 
-Even that logic is worth encapsulating within a class method `.print_all`.
+Even that logic is worth encapsulating within a class method `.print_all`:
 
 ```ruby
 class Person
@@ -499,7 +493,7 @@ class Person
   end
 
   def self.print_all
-    self.all.each{|person| puts "#{person.name}"}
+    self.all.each { |person| puts person.name }
   end
 end
 
@@ -514,7 +508,7 @@ Way nicer.
 Additionally, class methods might provide a global operation on data. Imagine
 that one of the CSVs we were provided with has people's names in lowercase
 letters. We want proper capitalization. We can build a class method
-`Person.normalize_names`
+`Person.normalize_names`:
 
 ```ruby
 class Person
@@ -531,7 +525,7 @@ class Person
 
   def self.normalize_names
     self.all.each do |person|
-      person.name = person.name.split(" ").collect{|w| w.capitalize}.join(" ")
+      person.name = person.name.split(" ").map { |w| w.capitalize }.join(" ")
     end
   end
 end
@@ -540,7 +534,7 @@ end
 The logic for actually normalizing a person's name is pretty complex:
 
 ```ruby
-person.name.split(" ").collect{|w| w.capitalize}.join(" ")
+person.name.split(" ").map { |w| w.capitalize }.join(" ")
 ```
 
 What we're doing is splitting a name, like `"ada lovelace"`, into an array at
@@ -566,7 +560,7 @@ class Person
   end
 
   def normalize_name
-    self.name.split(" ").collect{|w| w.capitalize}.join(" ")
+    self.name.split(" ").map { |w| w.capitalize }.join(" ")
   end
 
   def self.normalize_names
@@ -609,10 +603,10 @@ Here our `Person.destroy_all` method uses the
 [`Array#clear`](http://ruby-doc.org/core/Array.html#method-i-clear) method to
 empty the `@@all` array through the class reader `Person.all`.
 
-## Resources
+## Conclusion
 
-* [Video Review- Object Orientation: Key Mechanics](https://www.youtube.com/watch?v=-jrEbj4iCQ8)
-
-* [Video Review- Object Models](https://www.youtube.com/watch?v=vENMFapLonA)
-
-* [Video Review- Object Orientation](https://www.youtube.com/watch?v=Z_IoQCVNWtM)
+We've covered a lot of code here, but hopefully after seeing these examples, you
+have a better sense of what kind of methods are good candidates for instance and
+class methods, and how to build out abstractions by having multiple methods in a
+class work together. When you're building out your own classes, keep this idea
+of encapsulation and the single-responsibility in mind to guide your decisions.
